@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Blocked • App Sentinel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Inter', sans-serif;
+    }
+
+    body {
+        height: 100vh;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 500px;
+        background: rgba(255,255,255,0.05);
+        padding: 40px 30px;
+        border-radius: 20px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+
+    .icon {
+        font-size: 60px;
+        margin-bottom: 20px;
+    }
+
+    h1 {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    p {
+        font-size: 15px;
+        opacity: 0.8;
+        line-height: 1.6;
+        margin-bottom: 25px;
+    }
+
+    .message {
+        font-size: 14px;
+        opacity: 0.6;
+        margin-top: 15px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 12px 25px;
+        border-radius: 30px;
+        background: #ef4444;
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+        transition: 0.3s;
+    }
+
+    .btn:hover {
+        background: #dc2626;
+    }
+
+    .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        opacity: 0.4;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="icon">🚫</div>
+    <h1>This Website is Blocked</h1>
+    <p>
+        The site you're trying to access is blocked by <strong>App Sentinel</strong>.
+        You are currently in a focus period.
+    </p>
+
+    <p class="message">
+        Take a deep breath. Stay disciplined.  
+        Your goals are more important than temporary distractions.
+    </p>
+
+    <a href="#" class="btn" onclick="window.close()">Go Back</a>
+
+    <div class="footer">
+        Powered by App Sentinel • Digital Discipline Mode
+    </div>
+</div>
+
+</body>
+</html>
