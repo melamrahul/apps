@@ -158,7 +158,6 @@ a{color:var(--accent)}
 .def-term{font-size:13px;font-weight:700}
 .def-body{font-size:14px;line-height:21px;color:var(--text)}
 /* Footer */
-.footer{text-align:center;margin-top:32px;bottom: 0pxpadding:16px;border-top:1px solid var(--border);font-size:12px;color:var(--sub)}
 .footer a{color:var(--accent);text-decoration:none}
 .footer a:hover{text-decoration:underline}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -171,7 +170,7 @@ a{color:var(--accent)}
 <div class="topbar">
   <div class="logo">Personal <span>AI</span></div>
   <div class="share-badge">Shared Chat</div>
-  <button class="open-btn" id="open-app-btn" style="display:none">Open App ↗</button>
+  <!-- <button class="open-btn" id="open-app-btn" style="display:none">Open App ↗</button> -->
 </div>
 
 <div class="wrap">
@@ -187,14 +186,14 @@ a{color:var(--accent)}
   </div>
 
   <div id="conv-view" style="display:none">
-    <div class="app-banner" id="app-banner" style="display:none">
+    <!-- <div class="app-banner" id="app-banner" style="display:none">
       <div class="app-banner-icon">✦</div>
       <div class="app-banner-text">
         <div class="app-banner-title">Open in Personal AI</div>
         <div class="app-banner-sub">Continue chatting in the full app</div>
       </div>
       <button class="open-btn" id="app-banner-btn">Open</button>
-    </div>
+    </div> -->
     <div class="conv-header">
       <div class="conv-title" id="conv-title"></div>
       <div class="conv-meta" id="conv-meta"></div>
@@ -264,11 +263,11 @@ const TARGET_MSG = params.get("m");
 const APP_URL = "https://melamrahul.github.io/apps/ai/?c=" + (CONV_ID||"");
 
 // Show "Open App" on mobile
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-if (isMobile) {
-  const topBtn = document.getElementById("open-app-btn");
-  if (topBtn) { topBtn.style.display="block"; topBtn.onclick=()=>location.href=APP_URL; }
-}
+// const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// if (isMobile) {
+//   const topBtn = document.getElementById("open-app-btn");
+//   if (topBtn) { topBtn.style.display="block"; topBtn.onclick=()=>location.href=APP_URL; }
+// }
 
 // ── Firebase load ─────────────────────────────────────────────────────────
 const USER_ID = "rahul_personal_ai";
