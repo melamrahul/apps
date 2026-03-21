@@ -2,20 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Personal AI</title>
+<meta name="description" content="Personal AI — your private AI assistant"/>
+<meta name="theme-color" content="#000000"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Personal AI"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 :root{--accent:#10A37F;--accent-10:rgba(16,163,127,.10);--accent-30:rgba(16,163,127,.30);--bg:#000;--surface:#1C1C1C;--border:#2C2C2C;--text:#FFF;--sub:#8E8EA0;--item:#1C1C1C;--ububble:#2C2C2C}
 [data-theme="light"]{--bg:#FFF;--surface:#F4F4F4;--border:#E0E0E0;--text:#0D0D0D;--sub:#6E6E80;--item:#F4F4F4;--ububble:#F0F0F0}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
+html,body{height:100%;overflow:hidden;-webkit-overflow-scrolling:touch}
 body{font-family:"DM Sans",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
 button{font-family:inherit}
-.app{display:flex;height:100vh;overflow:hidden;position:relative}
+.app{display:flex;height:100vh;height:100dvh;overflow:hidden;position:relative}
 /* Sidebar */
-#sidebar{width:268px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;overflow:hidden;transition:transform .25s;z-index:200}
+#sidebar{width:268px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;overflow:hidden;transition:transform .25s;z-index:200;-webkit-overflow-scrolling:touch}
 #sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:190}
 .sb-head{padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
 .sb-title{font-weight:700;font-size:15px;flex:1}
@@ -37,7 +45,7 @@ button{font-family:inherit}
 .tb-title{font-size:16px;font-weight:700;flex:1}
 #hamburger{display:none}
 /* Messages */
-#msg-wrap{flex:1;overflow-y:auto;position:relative}
+#msg-wrap{flex:1;overflow-y:auto;position:relative;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #messages{max-width:760px;margin:0 auto;padding:16px 14px 32px;display:flex;flex-direction:column;gap:6px;min-height:100%}
 /* Welcome */
 #welcome{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;pointer-events:none}
@@ -197,7 +205,7 @@ a{color:var(--accent)}
 .bull-nested-item{display:flex;align-items:flex-start}
 
 /* ── Input bar ── */
-.inp-area{padding:10px 14px 14px;flex-shrink:0;background:var(--bg);border-top:1px solid var(--border)}
+.inp-area{padding:10px 14px max(14px,env(safe-area-inset-bottom));flex-shrink:0;background:var(--bg);border-top:1px solid var(--border)}
 .inp-wrap{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
 .inp-pill{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:26px;padding:11px 18px;display:flex;align-items:flex-end;gap:8px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 #msg-input{flex:1;background:none;border:none;outline:none;resize:none;color:var(--text);font-family:"DM Sans",sans-serif;font-size:15px;line-height:1.5;max-height:140px;min-height:22px;overflow-y:auto}
@@ -247,7 +255,7 @@ a{color:var(--accent)}
 /* Memory list items */
 .mem-item{background:var(--item);border-radius:12px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
 .mem-item-body{flex:1;min-width:0}
-.mem-item-text{font-size:14px;color:var(--text);line-height:1.5;display:-webkit-box;;-webkit-box-orient:vertical;overflow:hidden}
+.mem-item-text{font-size:14px;color:var(--text);line-height:1.5;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
 .mem-item-meta{font-size:11px;color:var(--sub);margin-top:5px}
 .mem-del-btn{background:none;border:none;cursor:pointer;color:#EF4444;opacity:.6;padding:2px;flex-shrink:0;transition:opacity .15s}
 .mem-del-btn:hover{opacity:1}
@@ -276,15 +284,36 @@ a{color:var(--accent)}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 @media(max-width:680px){
-  #sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
+  #sidebar{position:fixed;left:0;top:0;bottom:0;height:100dvh;transform:translateX(-100%)}
   #sidebar.open{transform:translateX(0)}
   #sb-overlay{display:none}
   #hamburger{display:flex!important}
   .desk{display:none!important}
-  #sp{width:100%;right:-100%}
+  #sp{width:100%;right:-100%;top:0;bottom:0;height:100dvh}
   #sp.open{right:0}
+  .side-panel{width:100%;right:-100%;height:100dvh}
+  .inp-area{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+  .topbar{padding-top:max(10px,env(safe-area-inset-top))}
+  #pw-box{width:calc(100vw - 40px);max-width:360px}
+  #share-box{width:calc(100vw - 40px);max-width:360px}
+  .chips{gap:8px}
+  .chip{padding:8px 12px;font-size:12px}
+  .aibody{font-size:14px}
+  .ub{font-size:14px}
+  #msg-input{font-size:16px}
 }
 @media(min-width:681px){#sb-overlay{display:none!important}#sidebar{transform:none!important}}
+/* ── App-feel touch fixes ── */
+body{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.icon-btn{min-width:44px;min-height:44px}
+.ci{min-height:44px}
+#send-btn{width:48px;height:48px}
+/* Prevent body scroll-bounce on iOS — keep app feel */
+html{-webkit-overflow-scrolling:touch}
+body{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+/* Touch-friendly tap targets */
+.icon-btn{min-width:44px;min-height:44px}
+.ci{min-height:44px}
 </style>
 </head>
 <body>
@@ -358,14 +387,14 @@ a{color:var(--accent)}
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
       </button>
       <button class="icon-btn" id="memory-btn" title="Memory">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <!-- head -->
-                <path d="M12 3a6 6 0 0 0-6 6c0 3 2 5 4 6v3h4v-3c2-1 4-3 4-6a6 6 0 0 0-6-6z"/>
-                
-                <!-- gear -->
-                <circle cx="12" cy="10" r="1.8"/>
-                <path d="M12 7.5v-1M12 14.5v1M9.8 9.8l-.7-.7M14.9 14.9l.7.7M14.2 9.8l.7-.7M9.1 14.9l-.7.7"/>
-            </svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- head -->
+            <path d="M12 3a6 6 0 0 0-6 6c0 3 2 5 4 6v3h4v-3c2-1 4-3 4-6a6 6 0 0 0-6-6z"/>
+            
+            <!-- gear -->
+            <circle cx="12" cy="10" r="1.8"/>
+            <path d="M12 7.5v-1M12 14.5v1M9.8 9.8l-.7-.7M14.9 14.9l.7.7M14.2 9.8l.7-.7M9.1 14.9l-.7.7"/>
+        </svg>
         </button>
       <button class="icon-btn" id="settings-btn" title="Settings">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -531,6 +560,7 @@ a{color:var(--accent)}
   </div>
   <div id="mem-list"></div>
 </div>
+
 <script>
 // ══════════════════════════════════════════════════════════════════════════
 // ALL code in a regular script (NOT type="module") so inline-onclick works
