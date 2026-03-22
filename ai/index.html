@@ -23,6 +23,9 @@ button{font-family:inherit}
 .app{display:flex;height:100vh;height:100dvh;overflow:hidden;position:relative}
 #sidebar{width:268px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100%;overflow:hidden;transition:transform .25s;z-index:200}
 #sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:190}
+#sb-overlay.show{
+  display:block;
+}
 .sb-head{padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
 .sb-title{font-weight:700;font-size:15px;flex:1}
 .icon-btn{background:none;border:none;cursor:pointer;color:var(--text);min-width:44px;min-height:44px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
@@ -430,7 +433,22 @@ function _esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").rep
 function _fmtDate(ts){const d=new Date(ts),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):d.toLocaleDateString([],{month:"short",day:"numeric"})+" · "+d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});}
 function _uuid(){return([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));}
 function _autoResize(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,140)+"px";}
-function _closeSidebar(){document.getElementById("sidebar")?.classList.remove("open");document.getElementById("sb-overlay")?.classList.remove("show");}
+function _closeSidebar(){
+  document.getElementById("sidebar")?.classList.remove("open");
+  document.getElementById("sb-overlay")?.classList.remove("show");
+}
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("sb-overlay");
+const hamburger = document.getElementById("hamburger");
+
+hamburger.addEventListener("click", () => {
+  sidebar.classList.add("open");
+  overlay.classList.add("show");
+});
+overlay.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+});
 
 // ── Theme ─────────────────────────────────────────────────────────────────
 let _dark=localStorage.getItem("pai_theme")!=="light";
