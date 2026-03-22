@@ -43,7 +43,7 @@ button{font-family:inherit}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .topbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
 .tb-title{font-size:16px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#hamburger{display:none}
+#hamburger{display:flex}
 #msg-wrap{flex:1;overflow-y:auto;position:relative;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #messages{max-width:760px;margin:0 auto;padding:16px 14px 32px;display:flex;flex-direction:column;gap:6px;min-height:100%}
 #welcome{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;pointer-events:none}
@@ -209,7 +209,7 @@ a{color:var(--accent)}
 #share-link-box{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--sub);font-family:"JetBrains Mono",monospace;word-break:break-all;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 @media(max-width:680px){
-  #sidebar{position:fixed;left:0;top:0;bottom:0;height:100dvh;transform:translateX(-100%)}
+ #sidebar{position:fixed;left:0;top:0;bottom:0;height:100dvh;transform:translateX(-100%)}
   #sidebar.open{transform:translateX(0)}
   #hamburger{display:flex!important}
   .desk{display:none!important}
@@ -224,7 +224,7 @@ a{color:var(--accent)}
   .aibody{font-size:14px}.ub{font-size:14px}
   #msg-input{font-size:16px}
 }
-@media(min-width:681px){#sb-overlay{display:none!important}#sidebar{transform:none!important}}
+@media(min-width:681px){#sb-overlay{display:none!important}}
 </style>
 </head>
 <body>
@@ -444,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const hamburger = document.getElementById("hamburger");
 
   hamburger.addEventListener("click", () => {
-    sidebar.classList.add("open");
+    sidebar.classList.toggle("open");
     overlay.classList.add("show");
   });
 
