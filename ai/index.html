@@ -438,7 +438,6 @@ function _closeSidebar(){
   document.getElementById("sb-overlay")?.classList.remove("show");
 }
 document.addEventListener("DOMContentLoaded", () => {
-
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("sb-overlay");
   const hamburger = document.getElementById("hamburger");
@@ -452,9 +451,8 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebar.classList.remove("open");
     overlay.classList.remove("show");
   });
-
 });
-
+  
 // ── Theme ─────────────────────────────────────────────────────────────────
 let _dark=localStorage.getItem("pai_theme")!=="light";
 let _accent=localStorage.getItem("pai_accent")||"#10A37F";
@@ -751,7 +749,10 @@ function _wireApp(){
   document.getElementById("send-btn").addEventListener("click",_send);
   document.getElementById("new-chat-top")?.addEventListener("click",_newChat);
   document.getElementById("new-chat-sb")?.addEventListener("click",_newChat);
-  document.getElementById("hamburger").addEventListener("click",()=>{document.getElementById("sidebar").classList.toggle("open");document.getElementById("sb-overlay").classList.toggle("show");});
+  document.getElementById("hamburger").addEventListener("click", () => {
+  const isOpen = document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sb-overlay").classList.toggle("show", isOpen);
+  });
   document.getElementById("sb-overlay").addEventListener("click",_closeSidebar);
   document.getElementById("settings-btn").addEventListener("click",()=>_openPanel("sp"));
   document.getElementById("sp-close").addEventListener("click",()=>_closePanel("sp"));
