@@ -437,17 +437,22 @@ function _closeSidebar(){
   document.getElementById("sidebar")?.classList.remove("open");
   document.getElementById("sb-overlay")?.classList.remove("show");
 }
-const sidebar = document.getElementById("sidebar");
-const overlay = document.getElementById("sb-overlay");
-const hamburger = document.getElementById("hamburger");
+document.addEventListener("DOMContentLoaded", () => {
 
-hamburger.addEventListener("click", () => {
-  sidebar.classList.add("open");
-  overlay.classList.add("show");
-});
-overlay.addEventListener("click", () => {
-  sidebar.classList.remove("open");
-  overlay.classList.remove("show");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sb-overlay");
+  const hamburger = document.getElementById("hamburger");
+
+  hamburger.addEventListener("click", () => {
+    sidebar.classList.add("open");
+    overlay.classList.add("show");
+  });
+
+  overlay.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
+  });
+
 });
 
 // ── Theme ─────────────────────────────────────────────────────────────────
