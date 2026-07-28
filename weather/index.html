@@ -711,577 +711,574 @@
   </div>
 
   <script>
-    /* =========================================================
-       api.js — OpenWeather API wrapper
-       ========================================================= */
-    const WeatherAPI = (() => {
-      const API_KEY = 'a94d3f4b5aa8f1cbaee0ce0f1f8b900c';
-      const BASE = 'https://api.openweathermap.org/data/2.5';
-      const cache = new Map();
-      const TTL = 5 * 60 * 1000;
+  /* =========================================================
+     api.js — OpenWeather API wrapper
+     ========================================================= */
+  const WeatherAPI = (() => {
+    const API_KEY = 'a94d3f4b5aa8f1cbaee0ce0f1f8b900c';
+    const BASE = 'https://api.openweathermap.org/data/2.5';
+    const cache = new Map();
+    const TTL = 5 * 60 * 1000;
 
-      async function request(path, params = {}) {
-        const url = new URL(`${BASE}${path}`);
-        url.searchParams.set('appid', API_KEY);
-        url.searchParams.set('units', 'metric');
-        Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-        const key = url.toString();
-        const hit = cache.get(key);
-        if (hit && Date.now() - hit.t < TTL) return hit.data;
-        const res = await fetch(key);
-        if (!res.ok) { const err = new Error(`HTTP ${res.status}`); err.status = res.status; throw err; }
-        const data = await res.json();
-        cache.set(key, { data, t: Date.now() });
-        return data;
+    async function request(path, params = {}) {
+      const url = new URL(`${BASE}${path}`);
+      url.searchParams.set('appid', API_KEY);
+      url.searchParams.set('units', 'metric');
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      const key = url.toString();
+      const hit = cache.get(key);
+      if (hit && Date.now() - hit.t < TTL) return hit.data;
+      const res = await fetch(key);
+      if (!res.ok) {
+        const err = new Error(`HTTP ${res.status}`);
+        err.status = res.status;
+        throw err;
       }
+      const data = await res.json();
+      cache.set(key, { data, t: Date.now() });
+      return data;
+    }
 
-      return {
-        currentByCoords: (lat, lon) => request('/weather', { lat, lon }),
-        currentByCity: (q) => request('/weather', { q }),
-        forecast: (lat, lon) => request('/forecast', { lat, lon }),
-        forecastByCity: (q) => request('/forecast', { q }),
-        async search(q) {
-          const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=6&appid=${API_KEY}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        },
-        iconUrl: (code, size = '2x') => `https://openweathermap.org/img/wn/${code}@${size}.png`
-      };
-    })();
+    return {
+      currentByCoords: (lat, lon) => request('/weather', { lat, lon }),
+      currentByCity: (q) => request('/weather', { q }),
+      forecast: (lat, lon) => request('/forecast', { lat, lon }),
+      forecastByCity: (q) => request('/forecast', { q }),
+      async search(q) {
+        const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=6&appid=${API_KEY}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      },
+      iconUrl: (code, size = '2x') => `https://openweathermap.org/img/wn/${code}@${size}.png`
+    };
+  })();
 
-    /* =========================================================
-       ui.js — DOM rendering helpers
-       ========================================================= */
-    const UI = (() => {
-      const $ = (id) => document.getElementById(id);
-      const body = document.body;
+  /* =========================================================
+     ui.js — DOM rendering helpers
+     ========================================================= */
+  const UI = (() => {
+    const $ = (id) => document.getElementById(id);
+    const body = document.body;
 
-      function themeFor(condition, isDay) {
-        const c = (condition || '').toLowerCase();
-        if (c.includes('thunder')) return 'storm';
-        if (c.includes('drizzle') || c.includes('rain')) return 'rain';
-        if (c.includes('snow') || c.includes('sleet')) return 'snow';
-        if (c.includes('mist') || c.includes('fog') || c.includes('haze') || c.includes('smoke')) return 'mist';
-        if (c.includes('cloud')) return 'cloudy';
-        return isDay ? 'clear-day' : 'clear-night';
+    function themeFor(condition, isDay) {
+      const c = (condition || '').toLowerCase();
+      if (c.includes('thunder')) return 'storm';
+      if (c.includes('drizzle') || c.includes('rain')) return 'rain';
+      if (c.includes('snow') || c.includes('sleet')) return 'snow';
+      if (c.includes('mist') || c.includes('fog') || c.includes('haze') || c.includes('smoke')) return 'mist';
+      if (c.includes('cloud')) return 'cloudy';
+      return isDay ? 'clear-day' : 'clear-night';
+    }
+
+    function setBackground(condition, isDay) {
+      const theme = themeFor(condition, isDay);
+      body.dataset.weather = theme;
+      const bg = getComputedStyle(document.documentElement).getPropertyValue(`--bg-${theme}`).trim();
+      document.querySelector('.bg-layer').style.background = bg || 'var(--bg-clear-day)';
+      const p = document.querySelector('.particles');
+      p.classList.remove('rain', 'snow');
+      if (theme === 'rain' || theme === 'storm') p.classList.add('rain');
+      else if (theme === 'snow') p.classList.add('snow');
+    }
+
+    function setTheme(theme) {
+      body.dataset.theme = theme;
+      localStorage.setItem('wx_theme', theme);
+    }
+
+    function showLoading() {
+      ['tempValue','feelsLike','hiTemp','loTemp','wind','gust','humidity','pressure','visibility','clouds']
+        .forEach(id => { const el = $(id); if (el && el.parentElement) el.parentElement.classList.add('skeleton'); });
+    }
+    function hideLoading() {
+      document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton'));
+    }
+
+    function showError(msg) { $('errorMsg').textContent = msg; $('error').hidden = false; }
+    function hideError() { $('error').hidden = true; }
+
+    function toast(msg, ms = 2500) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove('show'), ms);
+    }
+
+    function formatTime(ts, tz) {
+      const d = new Date((ts + (tz || 0)) * 1000);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+    }
+    function formatHour(ts, tz) {
+      const d = new Date((ts + (tz || 0)) * 1000);
+      return d.toLocaleTimeString([], { hour: 'numeric', timeZone: 'UTC' });
+    }
+    function formatDay(ts, tz) {
+      const d = new Date((ts + (tz || 0)) * 1000);
+      return d.toLocaleDateString([], { weekday: 'short', timeZone: 'UTC' });
+    }
+    function formatDate(ts, tz) {
+      const d = new Date((ts + (tz || 0)) * 1000);
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    }
+
+    function renderCurrent(data) {
+      const { name, sys, main, weather, wind, clouds, visibility, dt, timezone: tz } = data;
+      const w = weather[0];
+      const isDay = w.icon.endsWith('d');
+
+      $('cityName').textContent = `${name}${sys.country ? ', ' + sys.country : ''}`;
+      $('tempValue').textContent = Math.round(main.temp);
+      $('feelsLike').textContent = Math.round(main.feels_like);
+      $('wxDesc').textContent = w.description.replace(/\b\w/g, c => c.toUpperCase());
+      $('hiTemp').textContent = Math.round(main.temp_max);
+      $('loTemp').textContent = Math.round(main.temp_min);
+      $('updated').textContent = formatTime(dt, tz);
+
+      const icon = $('wxIcon');
+      icon.src = WeatherAPI.iconUrl(w.icon);
+      icon.alt = w.description;
+
+      $('wind').textContent = Math.round((wind.speed || 0) * 3.6);
+      $('gust').textContent = Math.round(((wind.gust || wind.speed || 0) * 3.6));
+      $('humidity').textContent = Math.round(main.humidity);
+      $('pressure').textContent = Math.round(main.pressure);
+      $('clouds').textContent = Math.round(clouds.all);
+
+      const vKm = (visibility || 0) / 1000;
+      $('visibility').textContent = vKm.toFixed(1);
+      $('visDesc').textContent = vKm > 10 ? 'Excellent' : vKm > 5 ? 'Good' : vKm > 1 ? 'Moderate' : 'Poor';
+
+      const c = clouds.all;
+      $('cloudDesc').textContent = c < 20 ? 'Clear' : c < 50 ? 'Partly cloudy' : c < 85 ? 'Mostly cloudy' : 'Overcast';
+
+      const p = main.pressure;
+      $('pressureTrend').textContent = p > 1020 ? 'High pressure' : p < 1005 ? 'Low pressure' : 'Stable';
+
+      const a = 17.27, b = 237.7;
+      const alpha = (a * main.temp) / (b + main.temp) + Math.log(main.humidity / 100);
+      const dew = (b * alpha) / (a - alpha);
+      $('dew').textContent = Math.round(dew);
+
+      $('sunrise').textContent = formatTime(sys.sunrise, tz);
+      $('sunset').textContent = formatTime(sys.sunset, tz);
+      const arc = $('sunArc');
+      const dayLen = sys.sunset - sys.sunrise;
+      const progress = Math.max(0, Math.min(1, (dt - sys.sunrise) / dayLen));
+      arc.innerHTML = '';
+      const dot = document.createElement('span');
+      dot.textContent = isDay ? '☀' : '🌙';
+      dot.style.cssText = `position:absolute;top:-12px;left:${progress*100}%;transform:translateX(-50%);transition:left .8s var(--ease);font-size:18px;`;
+      arc.appendChild(dot);
+
+      setBackground(w.main, isDay);
+      body.dataset.time = isDay ? 'day' : 'night';
+    }
+
+    /* ✅ FIX #1: rain1h can no longer be undefined */
+    function renderRain(data, forecast) {
+      const panel = $('rainPanel');
+      const w = data.weather[0];
+      const rain1h = data.rain?.["1h"] ?? 0;
+      const isRain = w.main === 'Rain' || rain1h > 0;
+
+      if (!isRain) { panel.hidden = true; return; }
+      panel.hidden = false;
+
+      let emoji = '🌦', title = 'Light Rain', sub = 'A few drops around';
+      if (rain1h >= 5)      { emoji = '⛈'; title = 'Heavy Rain';    sub = 'Stay indoors if possible'; }
+      else if (rain1h >= 2) { emoji = '🌧'; title = 'Moderate Rain'; sub = 'Bring an umbrella'; }
+      else if (rain1h >= 0.5) { emoji = '🌦'; title = 'Light Rain';  sub = 'Light showers'; }
+
+      $('rainEmoji').textContent = emoji;
+      $('rainTitle').textContent = title;
+      $('rainSub').textContent = sub;
+      $('rain1h').textContent = rain1h > 0 ? `${rain1h.toFixed(1)} mm` : '0 mm';
+      $('rainIntensity').textContent = rain1h >= 5 ? 'Heavy' : rain1h >= 2 ? 'Moderate' : 'Light';
+
+      if (forecast && forecast.list) {
+        const rainy = forecast.list.slice(0, 8).filter(x =>
+          x.weather[0].main === 'Rain' || ((x.rain?.["3h"] ?? 0) > 0)
+        );
+        const chance = Math.round((rainy.length / 8) * 100);
+        $('rainChance').textContent = `${chance}%`;
       }
+    }
 
-      function setBackground(condition, isDay) {
-        const theme = themeFor(condition, isDay);
-        body.dataset.weather = theme;
-        const bg = getComputedStyle(document.documentElement).getPropertyValue(`--bg-${theme}`).trim();
-        document.querySelector('.bg-layer').style.background = bg || 'var(--bg-clear-day)';
-        const p = document.querySelector('.particles');
-        p.classList.remove('rain', 'snow');
-        if (theme === 'rain' || theme === 'storm') p.classList.add('rain');
-        else if (theme === 'snow') p.classList.add('snow');
-      }
+    function renderHourly(forecast) {
+      const host = $('hourly');
+      host.innerHTML = '';
+      const tz = forecast.city.timezone;
+      const slots = forecast.list.slice(0, 8);
+      slots.forEach((s, i) => {
+        const el = document.createElement('div');
+        el.className = 'hour fade-in';
+        el.style.animationDelay = `${i * 40}ms`;
+        const pop = Math.round((s.pop || 0) * 100);
+        el.innerHTML = `
+          <div class="h">${i === 0 ? 'Now' : formatHour(s.dt, tz)}</div>
+          <img src="${WeatherAPI.iconUrl(s.weather[0].icon)}" alt="${s.weather[0].description}" loading="lazy" />
+          <div class="t">${Math.round(s.main.temp)}°</div>
+          <div class="r">${pop > 0 ? `💧 ${pop}%` : ''}</div>
+        `;
+        host.appendChild(el);
+      });
+    }
 
-      function setTheme(theme) {
-        body.dataset.theme = theme;
-        localStorage.setItem('wx_theme', theme);
-      }
+    function renderDaily(forecast) {
+      const host = $('daily');
+      host.innerHTML = '';
+      const tz = forecast.city.timezone;
+      const byDay = new Map();
+      forecast.list.forEach(s => {
+        const d = new Date((s.dt + tz) * 1000);
+        const key = d.toISOString().slice(0, 10);
+        if (!byDay.has(key)) byDay.set(key, { hi: -Infinity, lo: Infinity, pop: 0, icon: s.weather[0].icon, desc: s.weather[0].description });
+        const day = byDay.get(key);
+        day.hi = Math.max(day.hi, s.main.temp_max);
+        day.lo = Math.min(day.lo, s.main.temp_min);
+        day.pop = Math.max(day.pop, s.pop || 0);
+      });
 
-      function showLoading() {
-        ['tempValue','feelsLike','hiTemp','loTemp','wind','gust','humidity','pressure','visibility','clouds']
-          .forEach(id => { const el = $(id); if (el) el.parentElement.classList.add('skeleton'); });
-      }
-      function hideLoading() { document.querySelectorAll('.skeleton').forEach(el => el.classList.remove('skeleton')); }
+      const days = Array.from(byDay.entries()).slice(0, 7);
+      days.forEach(([key, d], i) => {
+        const ts = forecast.list.find(s => new Date((s.dt + tz) * 1000).toISOString().slice(0, 10) === key).dt;
+        const el = document.createElement('div');
+        el.className = 'day fade-in';
+        el.style.animationDelay = `${i * 50}ms`;
+        const pop = Math.round(d.pop * 100);
+        el.innerHTML = `
+          <div class="d">${i === 0 ? 'Today' : formatDay(ts, tz)}<small>${formatDate(ts, tz)}</small></div>
+          <img src="${WeatherAPI.iconUrl(d.icon)}" alt="${d.desc}" loading="lazy" />
+          <div class="desc">${d.desc.replace(/\b\w/g, c => c.toUpperCase())}${pop > 0 ? ` • 💧 ${pop}%` : ''}</div>
+          <div class="temps"><span class="hi">${Math.round(d.hi)}°</span><span class="lo">${Math.round(d.lo)}°</span></div>
+        `;
+        host.appendChild(el);
+      });
+    }
 
-      function showError(msg) { $('errorMsg').textContent = msg; $('error').hidden = false; }
-      function hideError() { $('error').hidden = true; }
+    function renderAlerts(alerts) {
+      const host = $('alerts');
+      host.innerHTML = '';
+      if (!alerts || !alerts.length) { host.hidden = true; return; }
+      host.hidden = false;
+      alerts.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'alert';
+        el.innerHTML = `<strong>${a.event || 'Weather Alert'}</strong><div>${(a.description || '').slice(0, 280)}${(a.description || '').length > 280 ? '…' : ''}</div>`;
+        host.appendChild(el);
+      });
+    }
 
-      function toast(msg, ms = 2500) {
-        const t = $('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(toast._t);
-        toast._t = setTimeout(() => t.classList.remove('show'), ms);
-      }
+    function renderSuggestions(results, onSelect) {
+      const host = $('suggestions');
+      host.innerHTML = '';
+      if (!results || !results.length) { host.hidden = true; return; }
+      results.forEach(r => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = `<span>${r.name}${r.state ? ', ' + r.state : ''}</span><small>${r.country}</small>`;
+        btn.addEventListener('click', () => { onSelect(r); host.hidden = true; });
+        host.appendChild(btn);
+      });
+      host.hidden = false;
+    }
 
-      function formatTime(ts, tz) {
-        const d = new Date((ts + (tz || 0)) * 1000);
-        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
-      }
-      function formatHour(ts, tz) {
-        const d = new Date((ts + (tz || 0)) * 1000);
-        return d.toLocaleTimeString([], { hour: 'numeric', timeZone: 'UTC' });
-      }
-      function formatDay(ts, tz) {
-        const d = new Date((ts + (tz || 0)) * 1000);
-        return d.toLocaleDateString([], { weekday: 'short', timeZone: 'UTC' });
-      }
-      function formatDate(ts, tz) {
-        const d = new Date((ts + (tz || 0)) * 1000);
-        return d.toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
-      }
+    function renderFavourites(list, onPick, onRemove) {
+      const host = $('favList');
+      host.innerHTML = '';
+      if (!list.length) { host.innerHTML = '<li class="empty">No favourites yet. Tap the star on a city.</li>'; return; }
+      list.forEach(f => {
+        const li = document.createElement('li');
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `${f.name}${f.country ? ', ' + f.country : ''}`;
+        const rmBtn = document.createElement('span');
+        rmBtn.className = 'icon-btn';
+        rmBtn.setAttribute('aria-label', 'Remove');
+        rmBtn.textContent = '✕';
+        li.appendChild(nameSpan); li.appendChild(rmBtn);
+        nameSpan.addEventListener('click', () => onPick(f));
+        rmBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(f); });
+        host.appendChild(li);
+      });
+    }
 
-      function renderCurrent(data) {
-        const { name, sys, main, weather, wind, clouds, visibility, dt, timezone: tz } = data;
-        const w = weather[0];
-        const isDay = w.icon.endsWith('d');
+    function renderRecent(list, onPick) {
+      const host = $('recentList');
+      host.innerHTML = '';
+      if (!list.length) { host.innerHTML = '<li class="empty">No recent searches.</li>'; return; }
+      list.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = `${f.name}${f.country ? ', ' + f.country : ''}`;
+        li.addEventListener('click', () => onPick(f));
+        host.appendChild(li);
+      });
+    }
 
-        $('cityName').textContent = `${name}${sys.country ? ', ' + sys.country : ''}`;
-        $('tempValue').textContent = Math.round(main.temp);
-        $('feelsLike').textContent = Math.round(main.feels_like);
-        $('wxDesc').textContent = w.description.replace(/\b\w/g, c => c.toUpperCase());
-        $('hiTemp').textContent = Math.round(main.temp_max);
-        $('loTemp').textContent = Math.round(main.temp_min);
-        $('updated').textContent = formatTime(dt, tz);
+    return {
+      $, setBackground, setTheme,
+      showLoading, hideLoading, showError, hideError, toast,
+      renderCurrent, renderRain, renderHourly, renderDaily, renderAlerts,
+      renderSuggestions, renderFavourites, renderRecent, formatTime
+    };
+  })();
 
-        const icon = $('wxIcon');
-        icon.src = WeatherAPI.iconUrl(w.icon);
-        icon.alt = w.description;
+  /* =========================================================
+     app.js — Main controller
+     ========================================================= */
+  (function () {
+    const $ = UI.$;
+    const state = {
+      current: null,
+      forecast: null,
+      lastQuery: null,
+      favourites: JSON.parse(localStorage.getItem('wx_favs') || '[]'),
+      recent: JSON.parse(localStorage.getItem('wx_recent') || '[]'),
+      searchTimer: null
+    };
 
-        $('wind').textContent = Math.round((wind.speed || 0) * 3.6);
-        $('gust').textContent = Math.round(((wind.gust || wind.speed || 0) * 3.6));
-        $('humidity').textContent = Math.round(main.humidity);
-        $('pressure').textContent = Math.round(main.pressure);
-        $('clouds').textContent = Math.round(clouds.all);
+    function init() {
+      const savedTheme = localStorage.getItem('wx_theme')
+        || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      UI.setTheme(savedTheme);
+      updateThemeIcon();
+      bindEvents();
+      renderDrawer();
 
-        const vKm = (visibility || 0) / 1000;
-        $('visibility').textContent = vKm.toFixed(1);
-        $('visDesc').textContent = vKm > 10 ? 'Excellent' : vKm > 5 ? 'Good' : vKm > 1 ? 'Moderate' : 'Poor';
-
-        const c = clouds.all;
-        $('cloudDesc').textContent = c < 20 ? 'Clear' : c < 50 ? 'Partly cloudy' : c < 85 ? 'Mostly cloudy' : 'Overcast';
-
-        const p = main.pressure;
-        $('pressureTrend').textContent = p > 1020 ? 'High pressure' : p < 1005 ? 'Low pressure' : 'Stable';
-
-        const a = 17.27, b = 237.7;
-        const alpha = (a * main.temp) / (b + main.temp) + Math.log(main.humidity / 100);
-        const dew = (b * alpha) / (a - alpha);
-        $('dew').textContent = Math.round(dew);
-
-        $('sunrise').textContent = formatTime(sys.sunrise, tz);
-        $('sunset').textContent = formatTime(sys.sunset, tz);
-        const arc = $('sunArc');
-        const dayLen = sys.sunset - sys.sunrise;
-        const progress = Math.max(0, Math.min(1, (dt - sys.sunrise) / dayLen));
-        arc.innerHTML = '';
-        const dot = document.createElement('span');
-        dot.textContent = isDay ? '☀' : '🌙';
-        dot.style.cssText = `position:absolute;top:-12px;left:${progress*100}%;transform:translateX(-50%);transition:left .8s var(--ease);font-size:18px;`;
-        arc.appendChild(dot);
-
-        setBackground(w.main, isDay);
-        body.dataset.time = isDay ? 'day' : 'night';
-      }
-
-      function renderRain(data, forecast) {
-        const panel = $('rainPanel');
-        const w = data.weather[0];
-        const rain1h = data.rain && data.rain['1h'];
-        const isRain = w.main === 'Rain' || (rain1h && rain1h > 0);
-        if (!isRain) { panel.hidden = true; return; }
-        panel.hidden = false;
-
-        let emoji = '🌦', title = 'Light Rain', sub = 'A few drops around';
-        if (rain1h >= 5) { emoji = '⛈'; title = 'Heavy Rain'; sub = 'Stay indoors if possible'; }
-        else if (rain1h >= 2) { emoji = '🌧'; title = 'Moderate Rain'; sub = 'Bring an umbrella'; }
-        else if (rain1h >= 0.5) { emoji = '🌦'; title = 'Light Rain'; sub = 'Light showers'; }
-
-        $('rainEmoji').textContent = emoji;
-        $('rainTitle').textContent = title;
-        $('rainSub').textContent = sub;
-        $('rain1h').textContent = rain1h ? `${rain1h.toFixed(1)} mm` : '—';
-        $('rainIntensity').textContent = rain1h >= 5 ? 'Heavy' : rain1h >= 2 ? 'Moderate' : 'Light';
-
-        if (forecast && forecast.list) {
-          const rainy = forecast.list.slice(0, 8).filter(x => x.weather[0].main === 'Rain' || (x.rain && x.rain['3h'] > 0));
-          const chance = Math.round((rainy.length / 8) * 100);
-          $('rainChance').textContent = `${chance}%`;
-        }
-      }
-
-      function renderHourly(forecast) {
-        const host = $('hourly');
-        host.innerHTML = '';
-        const tz = forecast.city.timezone;
-        const slots = forecast.list.slice(0, 8);
-        slots.forEach((s, i) => {
-          const el = document.createElement('div');
-          el.className = 'hour fade-in';
-          el.style.animationDelay = `${i * 40}ms`;
-          const pop = Math.round((s.pop || 0) * 100);
-          el.innerHTML = `
-            <div class="h">${i === 0 ? 'Now' : formatHour(s.dt, tz)}</div>
-            <img src="${WeatherAPI.iconUrl(s.weather[0].icon)}" alt="${s.weather[0].description}" loading="lazy" />
-            <div class="t">${Math.round(s.main.temp)}°</div>
-            <div class="r">${pop > 0 ? `💧 ${pop}%` : ''}</div>
-          `;
-          host.appendChild(el);
-        });
-      }
-
-      function renderDaily(forecast) {
-        const host = $('daily');
-        host.innerHTML = '';
-        const tz = forecast.city.timezone;
-        const byDay = new Map();
-        forecast.list.forEach(s => {
-          const d = new Date((s.dt + tz) * 1000);
-          const key = d.toISOString().slice(0, 10);
-          if (!byDay.has(key)) byDay.set(key, { hi: -Infinity, lo: Infinity, pop: 0, icon: s.weather[0].icon, desc: s.weather[0].description });
-          const day = byDay.get(key);
-          day.hi = Math.max(day.hi, s.main.temp_max);
-          day.lo = Math.min(day.lo, s.main.temp_min);
-          day.pop = Math.max(day.pop, s.pop || 0);
-        });
-
-        const days = Array.from(byDay.entries()).slice(0, 7);
-        days.forEach(([key, d], i) => {
-          const ts = forecast.list.find(s => new Date((s.dt + tz) * 1000).toISOString().slice(0, 10) === key).dt;
-          const el = document.createElement('div');
-          el.className = 'day fade-in';
-          el.style.animationDelay = `${i * 50}ms`;
-          const pop = Math.round(d.pop * 100);
-          el.innerHTML = `
-            <div class="d">${i === 0 ? 'Today' : formatDay(ts, tz)}<small>${formatDate(ts, tz)}</small></div>
-            <img src="${WeatherAPI.iconUrl(d.icon)}" alt="${d.desc}" loading="lazy" />
-            <div class="desc">${d.desc.replace(/\b\w/g, c => c.toUpperCase())}${pop > 0 ? ` • 💧 ${pop}%` : ''}</div>
-            <div class="temps"><span class="hi">${Math.round(d.hi)}°</span><span class="lo">${Math.round(d.lo)}°</span></div>
-          `;
-          host.appendChild(el);
-        });
-      }
-
-      function renderAlerts(alerts) {
-        const host = $('alerts');
-        host.innerHTML = '';
-        if (!alerts || !alerts.length) { host.hidden = true; return; }
-        host.hidden = false;
-        alerts.forEach(a => {
-          const el = document.createElement('div');
-          el.className = 'alert';
-          el.innerHTML = `<strong>${a.event || 'Weather Alert'}</strong><div>${(a.description || '').slice(0, 280)}${(a.description || '').length > 280 ? '…' : ''}</div>`;
-          host.appendChild(el);
-        });
-      }
-
-      function renderSuggestions(results, onSelect) {
-        const host = $('suggestions');
-        host.innerHTML = '';
-        if (!results || !results.length) { host.hidden = true; return; }
-        results.forEach(r => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.innerHTML = `<span>${r.name}${r.state ? ', ' + r.state : ''}</span><small>${r.country}</small>`;
-          btn.addEventListener('click', () => { onSelect(r); host.hidden = true; });
-          host.appendChild(btn);
-        });
-        host.hidden = false;
-      }
-
-      function renderFavourites(list, onPick, onRemove) {
-        const host = $('favList');
-        host.innerHTML = '';
-        if (!list.length) { host.innerHTML = '<li class="empty">No favourites yet. Tap the star on a city.</li>'; return; }
-        list.forEach(f => {
-          const li = document.createElement('li');
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = `${f.name}${f.country ? ', ' + f.country : ''}`;
-          const rmBtn = document.createElement('span');
-          rmBtn.className = 'icon-btn';
-          rmBtn.setAttribute('aria-label', 'Remove');
-          rmBtn.textContent = '✕';
-          li.appendChild(nameSpan); li.appendChild(rmBtn);
-          nameSpan.addEventListener('click', () => onPick(f));
-          rmBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(f); });
-          host.appendChild(li);
-        });
-      }
-
-      function renderRecent(list, onPick) {
-        const host = $('recentList');
-        host.innerHTML = '';
-        if (!list.length) { host.innerHTML = '<li class="empty">No recent searches.</li>'; return; }
-        list.forEach(f => {
-          const li = document.createElement('li');
-          li.textContent = `${f.name}${f.country ? ', ' + f.country : ''}`;
-          li.addEventListener('click', () => onPick(f));
-          host.appendChild(li);
-        });
-      }
-
-      return {
-        $, setBackground, setTheme,
-        showLoading, hideLoading, showError, hideError, toast,
-        renderCurrent, renderRain, renderHourly, renderDaily, renderAlerts,
-        renderSuggestions, renderFavourites, renderRecent, formatTime
-      };
-    })();
-
-    /* =========================================================
-       app.js — Main controller
-       ========================================================= */
-    (function () {
-      const $ = UI.$;
-      const state = {
-        current: null,
-        forecast: null,
-        lastQuery: null,
-        favourites: JSON.parse(localStorage.getItem('wx_favs') || '[]'),
-        recent: JSON.parse(localStorage.getItem('wx_recent') || '[]'),
-        searchTimer: null
-      };
-
-      function init() {
-        const savedTheme = localStorage.getItem('wx_theme')
-          || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        UI.setTheme(savedTheme);
-        updateThemeIcon();
-        bindEvents();
-        renderDrawer();
-
-        const last = localStorage.getItem('wx_last');
-        if (last) {
-          try {
-            const q = JSON.parse(last);
-            loadByCoords(q.lat, q.lon, q.name, q.country);
-            return;
-          } catch (_) {}
-        }
-        loadByGeolocation();
-      }
-
-      function bindEvents() {
-        $('themeBtn').addEventListener('click', toggleTheme);
-        $('refreshBtn').addEventListener('click', () => refresh());
-        $('locateBtn').addEventListener('click', () => loadByGeolocation());
-        $('retryBtn').addEventListener('click', () => { UI.hideError(); refresh(); });
-
-        const input = $('cityInput');
-        input.addEventListener('input', onSearchInput);
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const q = input.value.trim();
-            if (q) loadByCity(q);
-          }
-        });
-        document.addEventListener('click', (e) => {
-          if (!e.target.closest('.search-wrap')) $('suggestions').hidden = true;
-        });
-
-        $('favBtn').addEventListener('click', () => toggleDrawer(true));
-        $('closeDrawer').addEventListener('click', () => toggleDrawer(false));
-        $('starBtn').addEventListener('click', toggleFavourite);
-
-        let startY = 0, pulling = false;
-        document.addEventListener('touchstart', (e) => {
-          if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
-        }, { passive: true });
-        document.addEventListener('touchmove', (e) => {
-          if (!pulling) return;
-          const dy = e.touches[0].clientY - startY;
-          if (dy > 60) $('ptr').classList.add('active');
-        }, { passive: true });
-        document.addEventListener('touchend', () => {
-          if ($('ptr').classList.contains('active')) {
-            refresh();
-            setTimeout(() => $('ptr').classList.remove('active'), 600);
-          }
-          pulling = false;
-        });
-      }
-
-      function toggleTheme() {
-        const next = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-        UI.setBackground(state.current?.weather?.[0]?.main || 'Clear', document.body.dataset.time === 'day');
-        UI.setTheme(next);
-        updateThemeIcon();
-      }
-      function updateThemeIcon() {
-        const icon = $('themeIcon');
-        if (document.body.dataset.theme === 'dark') {
-          icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
-        } else {
-          icon.innerHTML = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
-        }
-      }
-
-      function onSearchInput(e) {
-        const q = e.target.value.trim();
-        clearTimeout(state.searchTimer);
-        if (q.length < 2) { $('suggestions').hidden = true; return; }
-        state.searchTimer = setTimeout(async () => {
-          try {
-            const results = await WeatherAPI.search(q);
-            UI.renderSuggestions(results, (r) => {
-              e.target.value = r.name;
-              loadByCoords(r.lat, r.lon, r.name, r.country);
-            });
-          } catch (_) { $('suggestions').hidden = true; }
-        }, 250);
-      }
-
-      async function loadByCoords(lat, lon, name, country) {
-        UI.showLoading();
-        UI.hideError();
+      const last = localStorage.getItem('wx_last');
+      if (last) {
         try {
-          const [current, forecast] = await Promise.all([
-            WeatherAPI.currentByCoords(lat, lon),
-            WeatherAPI.forecast(lat, lon)
-          ]);
-          state.current = current;
-          state.forecast = forecast;
-          state.lastQuery = { lat, lon, name: current.name, country: current.sys.country };
-          localStorage.setItem('wx_last', JSON.stringify(state.lastQuery));
-          renderAll();
-          addRecent(state.lastQuery);
-        } catch (err) {
-          handleError(err);
-        } finally {
-          UI.hideLoading();
-        }
+          const q = JSON.parse(last);
+          loadByCoords(q.lat, q.lon, q.name, q.country);
+          return;
+        } catch (_) {}
       }
+      loadByGeolocation();
+    }
 
-      async function loadByCity(q) {
-        UI.showLoading();
-        UI.hideError();
+    function bindEvents() {
+      $('themeBtn').addEventListener('click', toggleTheme);
+      $('refreshBtn').addEventListener('click', () => refresh());
+      $('locateBtn').addEventListener('click', () => loadByGeolocation());
+      $('retryBtn').addEventListener('click', () => { UI.hideError(); refresh(); });
+
+      const input = $('cityInput');
+      input.addEventListener('input', onSearchInput);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const q = input.value.trim();
+          if (q) loadByCity(q);
+        }
+      });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-wrap')) $('suggestions').hidden = true;
+      });
+
+      $('favBtn').addEventListener('click', () => toggleDrawer(true));
+      $('closeDrawer').addEventListener('click', () => toggleDrawer(false));
+      $('starBtn').addEventListener('click', toggleFavourite);
+
+      let startY = 0, pulling = false;
+      document.addEventListener('touchstart', (e) => {
+        if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
+      }, { passive: true });
+      document.addEventListener('touchmove', (e) => {
+        if (!pulling) return;
+        const dy = e.touches[0].clientY - startY;
+        if (dy > 60) $('ptr').classList.add('active');
+      }, { passive: true });
+      document.addEventListener('touchend', () => {
+        if ($('ptr').classList.contains('active')) {
+          refresh();
+          setTimeout(() => $('ptr').classList.remove('active'), 600);
+        }
+        pulling = false;
+      });
+    }
+
+    function toggleTheme() {
+      const next = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+      UI.setBackground(state.current?.weather?.[0]?.main || 'Clear', document.body.dataset.time === 'day');
+      UI.setTheme(next);
+      updateThemeIcon();
+    }
+    function updateThemeIcon() {
+      const icon = $('themeIcon');
+      if (document.body.dataset.theme === 'dark') {
+        icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+      } else {
+        icon.innerHTML = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
+      }
+    }
+
+    function onSearchInput(e) {
+      const q = e.target.value.trim();
+      clearTimeout(state.searchTimer);
+      if (q.length < 2) { $('suggestions').hidden = true; return; }
+      state.searchTimer = setTimeout(async () => {
         try {
-          const [current, forecast] = await Promise.all([
-            WeatherAPI.currentByCity(q),
-            WeatherAPI.forecastByCity(q)
-          ]);
-          state.current = current;
-          state.forecast = forecast;
-          state.lastQuery = { lat: current.coord.lat, lon: current.coord.lon, name: current.name, country: current.sys.country };
-          localStorage.setItem('wx_last', JSON.stringify(state.lastQuery));
-          renderAll();
-          addRecent(state.lastQuery);
+          const results = await WeatherAPI.search(q);
+          UI.renderSuggestions(results, (r) => {
+            e.target.value = r.name;
+            loadByCoords(r.lat, r.lon, r.name, r.country);
+          });
         } catch (err) {
-          handleError(err);
-        } finally {
-          UI.hideLoading();
+          console.error('search error:', err);
+          $('suggestions').hidden = true;
         }
-      }
+      }, 250);
+    }
 
-      function loadByGeolocation() {
-        if (!navigator.geolocation) { loadByCity('London'); return; }
-        UI.showLoading();
-        navigator.geolocation.getCurrentPosition(
-          (pos) => loadByCoords(pos.coords.latitude, pos.coords.longitude),
-          () => { loadByCity('London').finally(() => UI.toast('Location unavailable — showing London')); },
-          { timeout: 8000, maximumAge: 10 * 60 * 1000 }
-        );
-      }
-
-      function refresh() {
-        if (!state.lastQuery) return loadByGeolocation();
-        loadByCoords(state.lastQuery.lat, state.lastQuery.lon);
-      }
-
-      function renderAll() {
-        UI.renderCurrent(state.current);
-        UI.renderRain(state.current, state.forecast);
-        UI.renderHourly(state.forecast);
-        UI.renderDaily(state.forecast);
-        UI.renderAlerts(state.current.alerts);
-        updateStar();
-      }
-
-      function handleError(err) {
-        let msg = 'We couldn’t load the weather.';
-        if (err.status === 404) msg = 'City not found. Try another search.';
-        else if (err.status === 401) msg = 'Invalid API key.';
-        else if (err.status === 429) msg = 'Too many requests. Please wait a moment.';
-        UI.showError(msg);
-      }
-
-      function toggleFavourite() {
-        if (!state.lastQuery) return;
-        const key = `${state.lastQuery.lat},${state.lastQuery.lon}`;
-        const idx = state.favourites.findIndex(f => `${f.lat},${f.lon}` === key);
-        if (idx >= 0) { state.favourites.splice(idx, 1); UI.toast('Removed from favourites'); }
-        else { state.favourites.unshift(state.lastQuery); UI.toast('Added to favourites'); }
-        state.favourites = state.favourites.slice(0, 20);
-        localStorage.setItem('wx_favs', JSON.stringify(state.favourites));
-        updateStar();
-        renderDrawer();
-      }
-      function updateStar() {
-        if (!state.lastQuery) return;
-        const btn = $('starBtn');
-        btn.hidden = false;
-        const key = `${state.lastQuery.lat},${state.lastQuery.lon}`;
-        const isFav = state.favourites.some(f => `${f.lat},${f.lon}` === key);
-        btn.classList.toggle('active', isFav);
-      }
-
-      function addRecent(q) {
-        state.recent = state.recent.filter(f => !(f.lat === q.lat && f.lon === q.lon));
-        state.recent.unshift(q);
-        state.recent = state.recent.slice(0, 8);
-        localStorage.setItem('wx_recent', JSON.stringify(state.recent));
-        renderDrawer();
-      }
-
-      function toggleDrawer(open) {
-        const d = $('drawer');
-        if (open === undefined) open = !d.classList.contains('open');
-        d.classList.toggle('open', open);
-        d.setAttribute('aria-hidden', String(!open));
-      }
-      function renderDrawer() {
-        UI.renderFavourites(
-          state.favourites,
-          (f) => { loadByCoords(f.lat, f.lon, f.name, f.country); toggleDrawer(false); },
-          (f) => {
-            state.favourites = state.favourites.filter(x => !(x.lat === f.lat && x.lon === f.lon));
-            localStorage.setItem('wx_favs', JSON.stringify(state.favourites));
-            updateStar();
-            renderDrawer();
-          }
-        );
-        UI.renderRecent(
-          state.recent,
-          (f) => { loadByCoords(f.lat, f.lon, f.name, f.country); toggleDrawer(false); }
-        );
-      }
-
-      document.addEventListener('DOMContentLoaded', init);
-    })();
-
-    /* =========================================================
-       Service Worker — inlined via Blob URL
-       ========================================================= */
-    (function registerSW() {
-      if (!('serviceWorker' in navigator)) return;
-      const swCode = `
-        const CACHE = 'wx-v1';
-        self.addEventListener('install', (e) => { self.skipWaiting(); });
-        self.addEventListener('activate', (e) => {
-          e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
-          self.clients.claim();
-        });
-        self.addEventListener('fetch', (e) => {
-          const req = e.request;
-          const url = new URL(req.url);
-          if (url.hostname.includes('openweathermap.org')) {
-            e.respondWith(
-              fetch(req).then(res => {
-                const copy = res.clone();
-                caches.open(CACHE).then(c => c.put(req, copy));
-                return res;
-              }).catch(() => caches.match(req))
-            );
-            return;
-          }
-          e.respondWith(
-            caches.match(req).then(cached => cached || fetch(req))
-          );
-        });
-      `;
+    async function loadByCoords(lat, lon, name, country) {
+      UI.showLoading();
+      UI.hideError();
       try {
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
-      } catch (_) {}
-    })();
-  </script>
+        const [current, forecast] = await Promise.all([
+          WeatherAPI.currentByCoords(lat, lon),
+          WeatherAPI.forecast(lat, lon)
+        ]);
+        state.current = current;
+        state.forecast = forecast;
+        state.lastQuery = { lat, lon, name: current.name, country: current.sys.country };
+        localStorage.setItem('wx_last', JSON.stringify(state.lastQuery));
+        renderAll();
+        addRecent(state.lastQuery);
+      } catch (err) {
+        console.error('loadByCoords error:', err);
+        handleError(err);
+      } finally {
+        UI.hideLoading();
+      }
+    }
+
+    /* ✅ FIX #2: loadByCity is async and returns a promise, so .finally() works */
+    async function loadByCity(q) {
+      UI.showLoading();
+      UI.hideError();
+      try {
+        const [current, forecast] = await Promise.all([
+          WeatherAPI.currentByCity(q),
+          WeatherAPI.forecastByCity(q)
+        ]);
+        state.current = current;
+        state.forecast = forecast;
+        state.lastQuery = { lat: current.coord.lat, lon: current.coord.lon, name: current.name, country: current.sys.country };
+        localStorage.setItem('wx_last', JSON.stringify(state.lastQuery));
+        renderAll();
+        addRecent(state.lastQuery);
+      } catch (err) {
+        console.error('loadByCity error:', err);
+        handleError(err);
+      } finally {
+        UI.hideLoading();
+      }
+    }
+
+    function loadByGeolocation() {
+      if (!navigator.geolocation) {
+        loadByCity('London').finally(() =>
+          UI.toast('Geolocation unavailable — showing London')
+        );
+        return;
+      }
+      UI.showLoading();
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadByCoords(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          loadByCity('London').finally(() =>
+            UI.toast('Location unavailable — showing London')
+          );
+        },
+        { timeout: 8000, maximumAge: 10 * 60 * 1000 }
+      );
+    }
+
+    function refresh() {
+      if (!state.lastQuery) return loadByGeolocation();
+      loadByCoords(state.lastQuery.lat, state.lastQuery.lon);
+    }
+
+    function renderAll() {
+      UI.renderCurrent(state.current);
+      UI.renderRain(state.current, state.forecast);
+      UI.renderHourly(state.forecast);
+      UI.renderDaily(state.forecast);
+      UI.renderAlerts(state.current.alerts);
+      updateStar();
+    }
+
+    function handleError(err) {
+      let msg = 'We couldn’t load the weather.';
+      if (err && err.status === 404) msg = 'City not found. Try another search.';
+      else if (err && err.status === 401) msg = 'Invalid API key.';
+      else if (err && err.status === 429) msg = 'Too many requests. Please wait a moment.';
+      UI.showError(msg);
+    }
+
+    function toggleFavourite() {
+      if (!state.lastQuery) return;
+      const key = `${state.lastQuery.lat},${state.lastQuery.lon}`;
+      const idx = state.favourites.findIndex(f => `${f.lat},${f.lon}` === key);
+      if (idx >= 0) { state.favourites.splice(idx, 1); UI.toast('Removed from favourites'); }
+      else { state.favourites.unshift(state.lastQuery); UI.toast('Added to favourites'); }
+      state.favourites = state.favourites.slice(0, 20);
+      localStorage.setItem('wx_favs', JSON.stringify(state.favourites));
+      updateStar();
+      renderDrawer();
+    }
+    function updateStar() {
+      if (!state.lastQuery) return;
+      const btn = $('starBtn');
+      btn.hidden = false;
+      const key = `${state.lastQuery.lat},${state.lastQuery.lon}`;
+      const isFav = state.favourites.some(f => `${f.lat},${f.lon}` === key);
+      btn.classList.toggle('active', isFav);
+    }
+
+    function addRecent(q) {
+      state.recent = state.recent.filter(f => !(f.lat === q.lat && f.lon === q.lon));
+      state.recent.unshift(q);
+      state.recent = state.recent.slice(0, 8);
+      localStorage.setItem('wx_recent', JSON.stringify(state.recent));
+      renderDrawer();
+    }
+
+    function toggleDrawer(open) {
+      const d = $('drawer');
+      if (open === undefined) open = !d.classList.contains('open');
+      d.classList.toggle('open', open);
+      d.setAttribute('aria-hidden', String(!open));
+    }
+    function renderDrawer() {
+      UI.renderFavourites(
+        state.favourites,
+        (f) => { loadByCoords(f.lat, f.lon, f.name, f.country); toggleDrawer(false); },
+        (f) => {
+          state.favourites = state.favourites.filter(x => !(x.lat === f.lat && x.lon === f.lon));
+          localStorage.setItem('wx_favs', JSON.stringify(state.favourites));
+          updateStar();
+          renderDrawer();
+        }
+      );
+      UI.renderRecent(
+        state.recent,
+        (f) => { loadByCoords(f.lat, f.lon, f.name, f.country); toggleDrawer(false); }
+      );
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  })();
+
+  (function registerSW() {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/apps/weather/sw.js')
+        .then(() => console.log('SW registered'))
+        .catch(err => console.warn('SW registration skipped:', err.message));
+    });
+  })();
+</script>
 </body>
 </html>
